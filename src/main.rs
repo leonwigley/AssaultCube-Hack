@@ -52,5 +52,9 @@ fn main() {
         main_pid, max_cpu
     );
 
-    // TODO: attach to main_pid safely, read/write memory
+    // Attach WIP
+
+    // Read WIP
+
+    // Write WIP
 }

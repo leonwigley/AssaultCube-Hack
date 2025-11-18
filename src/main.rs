@@ -4,38 +4,53 @@ fn main() {
     let mut sys = System::new_all();
     sys.refresh_all();
 
-    let mut found = false;
-
-    // System
+    // System info
     println!("System name:             {:?}", System::name());
     println!("System kernel version:   {:?}", System::kernel_version());
     println!("System OS version:       {:?}", System::os_version());
     println!("System host name:        {:?}", System::host_name());
-
-    // RAM and swap
     println!("total memory: {} bytes", sys.total_memory());
     println!("used memory : {} bytes", sys.used_memory());
     println!("total swap  : {} bytes", sys.total_swap());
     println!("used swap   : {} bytes", sys.used_swap());
 
-    // AssaultCube PID (TODO: per os)
+    //   Target OS
+    #[cfg(target_os = "windows")]
+    const TARGETS: &[&str] = &["ac_client.exe"];
+    #[cfg(target_os = "linux")]
+    const TARGETS: &[&str] = &["linux_64_client"];
+    #[cfg(target_os = "macos")]
+    const TARGETS: &[&str] = &["AssaultCube"];
+
+    let targets = TARGETS;
+
+    // Detect matching processes
+    let mut main_pid: Option<Pid> = None;
+    let mut max_cpu: f32 = 0.0;
+
     for (pid, process) in sys.processes() {
         let name = process.name().to_string_lossy();
 
-        if name == "ac_client" || name == "AssaultCube" {
-            found = true;
-
-            println!("Found AssaultCube: PID = {}", pid);
+        if targets.contains(&name.as_ref()) {
+            println!("Found candidate: PID = {}", pid);
             println!("  Name: {:?}", process.name());
             println!("  Cmd : {:?}", process.cmd());
             println!("  CPU : {}", process.cpu_usage());
             println!("  Mem : {}", process.memory());
+
+            if process.cpu_usage() > max_cpu {
+                max_cpu = process.cpu_usage();
+                main_pid = Some(*pid);
+            }
         }
     }
 
-    assert!(found, "AssaultCube not found!");
+    let main_pid = main_pid.expect("AssaultCube not found!");
 
-    // TODO:
-    // Attach to the process safely
-    // Memory reading/writing
+    println!(
+        "\nSelected main AssaultCube PID = {} with CPU {}",
+        main_pid, max_cpu
+    );
+
+    // TODO: attach to main_pid safely, read/write memory
 }
